@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>海底環保問答遊戲 第二關</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Microsoft JhengHei", sans-serif;
+      background: url('images/sea.png') no-repeat center center;
+      background-size: cover;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #scoreboard {
+      position: absolute;
+      top: 10px;
+      left: 20px;
+      font-size: 20px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 2px 2px 4px #000;
+      z-index: 5;
+    }
+
+    .animal {
+      position: absolute;
+      width: 200px;
+      height: auto;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    #overlay, #questionBox, #gameOver {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      text-align: center;
+      z-index: 10;
+    }
+
+    #questionBox {
+      flex-direction: column;
+      display: none;
+    }
+
+    #questionBox button {
+      margin: 10px;
+      font-size: 20px;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+
+    #gameOver {
+      display: none;
+      flex-direction: column;
+    }
+
+    #nextBtn {
+      margin-top: 20px;
+      font-size: 20px;
+      padding: 10px 20px;
+      background-color: #00bfb2;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<audio id="bgMusic" src="audio/happy2.mp3" loop></audio>
+
+<div id="scoreboard">分數：<span id="score">0</span></div>
+<div id="overlay" onclick="startGame()">請點選畫面上的海底動物並回答問題。<br>（點一下開始遊戲與播放音樂）</div>
+
+<div id="questionBox">
+  <div id="question"></div>
+  <div>
+    <button onclick="answer(true)">✔ 是</button>
+    <button onclick="answer(false)">✘ 否</button>
+  </div>
+</div>
+
+<div id="gameOver">
+  <div>🎉 遊戲結束，恭喜完成！</div>
+  <button id="nextBtn" onclick="location.href='level3.html'">遊戲結束，請前往下一關~</button>
+</div>
+
+<script>
+  const baseAnimals = [
+    { src: 'images/crab.png', q: '螃蟹會誤食塑膠垃圾，導致死亡。', a: true },
+    { src: 'images/dolphin.png', q: '海豚可以安全地在油污中生活。', a: false },
+    { src: 'images/fish.png', q: '許多魚類會被漁網纏住，影響生態。', a: true },
+    { src: 'images/star.png', q: '海星不需要乾淨的海水也能生存。', a: false },
+    { src: 'images/turtle.png', q: '海龜會把塑膠袋當成水母吞下。', a: true }
+  ];
+
+  const animals = [];
+  baseAnimals.forEach(item => {
+    animals.push({ ...item });
+    animals.push({ ...item });
+  });
+
+  let score = 0;
+  let answered = 0;
+  let currentAnswer = null;
+  let currentElement = null;
+
+  function startGame() {
+    // 關閉說明畫面
+    document.getElementById('overlay').style.display = 'none';
+
+    // 播放背景音樂
+    const bgMusic = document.getElementById('bgMusic');
+    bgMusic.play().catch(err => {
+      console.log("音樂無法自動播放，需使用者互動", err);
+    });
+
+    createAnimals();
+  }
+
+  function createAnimals() {
+    const gridCols = 5;
+    const gridRows = 2;
+    const cellWidth = window.innerWidth / gridCols;
+    const cellHeight = (window.innerHeight * 0.4) / gridRows;
+
+    const usedCells = new Set();
+
+    animals.forEach((item, index) => {
+      let col, row, cellIndex, tries = 0;
+
+      do {
+        col = Math.floor(Math.random() * gridCols);
+        row = Math.floor(Math.random() * gridRows);
+        cellIndex = row * gridCols + col;
+        tries++;
+      } while (usedCells.has(cellIndex) && tries < 100);
+
+      usedCells.add(cellIndex);
+
+      const x = col * cellWidth + (cellWidth - 200) / 2;
+      const y = (window.innerHeight * 0.6) + row * cellHeight + (cellHeight - 200) / 2;
+
+      const img = document.createElement('img');
+      img.src = item.src;
+      img.className = 'animal';
+      img.style.left = `${x}px`;
+      img.style.top = `${y}px`;
+      img.dataset.index = index;
+
+      img.onclick = () => showQuestion(img, index);
+      document.body.appendChild(img);
+    });
+  }
+
+  function showQuestion(element, index) {
+    currentElement = element;
+    currentAnswer = animals[index].a;
+    document.getElementById('question').innerText = animals[index].q;
+    document.getElementById('questionBox').style.display = 'flex';
+  }
+
+  function answer(userAnswer) {
+    document.getElementById('questionBox').style.display = 'none';
+    if (userAnswer === currentAnswer) {
+      score += 10;
+      document.getElementById('score').innerText = score;
+    }
+    currentElement.remove();
+    answered++;
+
+    if (answered === animals.length) {
+      const gameOverBox = document.getElementById('gameOver');
+      const nextBtn = document.getElementById('nextBtn');
+
+      if (score >= 60) {
+        gameOverBox.querySelector('div').innerText = '🎉 遊戲結束，恭喜完成！';
+        nextBtn.innerText = '遊戲結束，請前往下一關~';
+        nextBtn.onclick = () => location.href = 'level3.html';
+      } else {
+        gameOverBox.querySelector('div').innerText = '❌ 挑戰失敗，請重新開始';
+        nextBtn.innerText = '重新開始';
+        nextBtn.onclick = () => location.reload();
+      }
+
+      gameOverBox.style.display = 'flex';
+    }
+  }
+</script>
+
+</body>
+</html>

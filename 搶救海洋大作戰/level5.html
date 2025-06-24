@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>海洋知識配對遊戲</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Microsoft JhengHei", sans-serif;
+      background: url('images/blue.png') no-repeat center center;
+      background-size: cover;
+      min-height: 100vh;
+      overflow: auto;
+      position: relative;
+    }
+    #overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      text-align: center;
+      z-index: 10;
+      padding: 20px;
+    }
+    #startBtn {
+      margin-top: 30px;
+      padding: 10px 30px;
+      font-size: 20px;
+      border: none;
+      border-radius: 8px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+      user-select: none;
+    }
+    #startBtn:hover {
+      background-color: #45a049;
+    }
+    #gameArea {
+      display: none;
+      justify-content: space-around;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 40px;
+      padding: 50px;
+      box-sizing: border-box;
+    }
+    .column {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .box {
+      width: 150px;
+      height: 150px;
+      background-color: white;
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 18px;
+      transition: background-color 0.3s, transform 0.3s;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .box img {
+      width: 100px;
+      height: 100px;
+      pointer-events: none;
+    }
+    .selected {
+      transform: scale(1.1);
+      border: 3px solid yellow;
+    }
+    .correct {
+      background-color: #4CAF50;
+      color: white;
+      pointer-events: none;
+    }
+    .wrong {
+      background-color: #f44336;
+      color: white;
+    }
+    #successMsg {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 30px 50px;
+      font-size: 24px;
+      border-radius: 12px;
+      z-index: 20;
+    }
+  </style>
+</head>
+<body>
+
+<div id="overlay">
+  請將下列八組方框進行配對，配對成功即可過關
+  <button id="startBtn">開始遊戲</button>
+</div>
+
+<div id="gameArea">
+  <div class="column" id="leftCol"></div>
+  <div class="column" id="rightCol"></div>
+</div>
+
+<div id="successMsg">🎉 挑戰成功，恭喜你成功拯救海洋!</div>
+
+<audio id="bgm" src="audio/soft5.mp3" preload="auto" loop></audio>
+
+<script>
+  const pairs = [
+    { animal: '海龜', fact: '常誤食塑膠袋', img: 'images/turtle2.png' },
+    { animal: '海豚', fact: '非常聰明且會社交', img: 'images/dol.png' },
+    { animal: '鯊魚', fact: '維持海洋食物鏈平衡', img: 'images/shark.png' },
+    { animal: '珊瑚', fact: '對海水溫度變化敏感', img: 'images/ka.png' },
+    { animal: '鯨魚', fact: '體型龐大需大量浮游生物', img: 'images/whale2.png' },
+    { animal: '章魚', fact: '有三顆心臟和藍色血液', img: 'images/o.png' },
+    { animal: '海馬', fact: '由雄性懷孕生產', img: 'images/horse.png' },
+    { animal: '海星', fact: '再生能力強', img: 'images/starfish.png' }
+  ];
+
+  let selectedLeft = null;
+  let selectedRight = null;
+  let matched = 0;
+  const total = pairs.length;
+
+  const overlay = document.getElementById('overlay');
+  const startBtn = document.getElementById('startBtn');
+  const gameArea = document.getElementById('gameArea');
+  const successMsg = document.getElementById('successMsg');
+  const bgm = document.getElementById('bgm');
+
+  function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+  }
+
+  function initGame() {
+    const leftCol = document.getElementById('leftCol');
+    const rightCol = document.getElementById('rightCol');
+    leftCol.innerHTML = '';
+    rightCol.innerHTML = '';
+    matched = 0;
+    selectedLeft = null;
+    selectedRight = null;
+
+    const shuffledLeft = shuffle([...pairs]);
+    const shuffledRight = shuffle([...pairs]);
+
+    shuffledLeft.forEach((item) => {
+      const box = document.createElement('div');
+      box.className = 'box';
+      box.dataset.key = item.animal;
+      box.onclick = () => selectBox(box, 'left');
+
+      const img = document.createElement('img');
+      img.src = item.img;
+      box.appendChild(img);
+
+      leftCol.appendChild(box);
+    });
+
+    shuffledRight.forEach((item) => {
+      const box = document.createElement('div');
+      box.className = 'box';
+      box.innerText = item.fact;
+      box.dataset.key = item.animal;
+      box.onclick = () => selectBox(box, 'right');
+
+      rightCol.appendChild(box);
+    });
+  }
+
+  function selectBox(box, side) {
+    if (box.classList.contains('correct')) return;
+
+    if ((side === 'left' && selectedLeft === box) || (side === 'right' && selectedRight === box)) return;
+
+    if (side === 'left') {
+      if (selectedLeft && selectedLeft !== box) selectedLeft.classList.remove('selected');
+      selectedLeft = box;
+      box.classList.add('selected');
+    } else {
+      if (selectedRight && selectedRight !== box) selectedRight.classList.remove('selected');
+      selectedRight = box;
+      box.classList.add('selected');
+    }
+
+    if (selectedLeft && selectedRight) {
+      const isMatch = selectedLeft.dataset.key === selectedRight.dataset.key;
+      if (isMatch) {
+        selectedLeft.classList.add('correct');
+        selectedRight.classList.add('correct');
+        matched++;
+        if (matched === total) {
+          successMsg.style.display = 'block';
+          bgm.pause();
+        }
+        selectedLeft.classList.remove('selected');
+        selectedRight.classList.remove('selected');
+        selectedLeft = null;
+        selectedRight = null;
+      } else {
+        selectedLeft.classList.add('wrong');
+        selectedRight.classList.add('wrong');
+        setTimeout(() => {
+          selectedLeft.classList.remove('wrong', 'selected');
+          selectedRight.classList.remove('wrong', 'selected');
+          selectedLeft = null;
+          selectedRight = null;
+        }, 1000);
+      }
+    }
+  }
+
+  startBtn.addEventListener('click', async () => {
+    try {
+      overlay.style.display = 'none';
+      gameArea.style.display = 'flex';
+      initGame();
+      await bgm.play();
+    } catch(err) {
+      console.error('音樂播放失敗:', err);
+    }
+  });
+</script>
+
+</body>
+</html>
