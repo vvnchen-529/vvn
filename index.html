@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SDGs 搶救海洋大作戰</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Microsoft JhengHei", sans-serif;
+      background: url('images/sea.png') no-repeat center center fixed;
+      background-size: cover;
+      overflow: hidden;
+    }
+
+    #title {
+      position: absolute;
+      top: 10px;
+      left: 20px;
+      font-size: 28px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 2px 2px 4px black;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 10px 20px;
+      border-radius: 10px;
+      z-index: 10;
+    }
+
+    #score {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 20px;
+      font-weight: bold;
+      color: white;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 10px 20px;
+      border-radius: 10px;
+      z-index: 10;
+    }
+
+    .trash {
+      position: absolute;
+      cursor: pointer;
+      transition: transform 0.2s;
+      z-index: 1;
+    }
+
+    #success {
+      display: none;
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      font-weight: bold;
+      background-color: rgba(255, 255, 255, 0.95);
+      padding: 30px;
+      border-radius: 12px;
+      text-align: center;
+      color: #2a7a2e;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
+      z-index: 100;
+    }
+
+    #nextBtn {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 18px;
+      border: none;
+      background-color: #28a745;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #nextBtn:hover {
+      background-color: #218838;
+    }
+
+    #intro {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      font-weight: bold;
+      background-color: rgba(255, 255, 255, 0.95);
+      padding: 30px 40px;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.3);
+      z-index: 200;
+      text-align: center;
+    }
+
+    #startBtn {
+      margin-top: 20px;
+      padding: 12px 30px;
+      font-size: 20px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #startBtn:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div id="title">SDGs 搶救海洋大作戰</div>
+  <div id="score">分數：0</div>
+  <div id="intro">
+    請點選海灘上的垃圾並將它們撿起來!<br />
+    <button id="startBtn">開始遊戲</button>
+  </div>
+  <div id="success">
+    🎉 任務成功 🎉<br />
+    <button id="nextBtn" onclick="location.href='level2.html'">前往下一關</button>
+  </div>
+
+  <!-- 背景音樂，預設靜音不自動播放 -->
+  <audio id="bgm" src="audio/happy.mp3" loop muted></audio>
+
+  <script>
+    const trashTypes = [
+      { src: 'images/bottle.png', score: 10, size: 80 },
+      { src: 'images/plastic.png', score: 15, size: 100 },
+      { src: 'images/cup.png', score: 20, size: 90 }
+    ];
+
+    const totalTrash = 25;
+    let score = 0;
+    let collected = 0;
+
+    const scoreBoard = document.getElementById("score");
+    const successMsg = document.getElementById("success");
+    const introBox = document.getElementById("intro");
+    const startBtn = document.getElementById("startBtn");
+    const bgm = document.getElementById("bgm");
+
+    function random(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function createTrash() {
+      for (let i = 0; i < totalTrash; i++) {
+        const type = trashTypes[Math.floor(Math.random() * trashTypes.length)];
+        const img = document.createElement("img");
+        img.src = type.src;
+        img.className = "trash";
+        img.width = type.size;
+        img.height = type.size;
+        img.dataset.score = type.score;
+
+        img.style.left = random(0, window.innerWidth - type.size) + "px";
+        img.style.top = random(window.innerHeight / 2, window.innerHeight - type.size) + "px";
+        img.style.transform = `rotate(${random(0, 360)}deg)`;
+
+        img.onclick = function () {
+          score += parseInt(this.dataset.score);
+          collected++;
+          scoreBoard.textContent = `分數：${score}`;
+          this.remove();
+
+          if (collected === totalTrash) {
+            successMsg.style.display = "block";
+          }
+        };
+
+        document.body.appendChild(img);
+      }
+    }
+
+    startBtn.onclick = () => {
+      introBox.style.display = "none";
+      createTrash();
+
+      bgm.muted = false;
+      bgm.play().catch((e) => {
+        // 失敗時可在此處處理，例如顯示提示訊息
+        console.warn("背景音樂播放失敗:", e);
+      });
+    };
+  </script>
+</body>
+</html>

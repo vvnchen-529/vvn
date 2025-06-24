@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>螃蟹閃避垃圾遊戲 - 第三關</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Microsoft JhengHei", sans-serif;
+      background: url('images/sea2.png') no-repeat center center;
+      background-size: cover;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #crab {
+      position: absolute;
+      width: 100px;
+      height: auto;
+      left: 50px;
+      top: 70%;
+      z-index: 2;
+    }
+
+    .trash {
+      position: absolute;
+      width: 60px;
+      height: auto;
+      z-index: 1;
+    }
+
+    #goal {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      bottom: 20px;
+      right: 20px;
+      background-color: rgba(0, 255, 0, 0.4);
+      border: 3px dashed #00ff00;
+      z-index: 1;
+    }
+
+    #overlay, #failScreen, #winScreen {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      font-size: 24px;
+      text-align: center;
+      z-index: 10;
+    }
+
+    #failScreen, #winScreen {
+      display: none;
+    }
+
+    button {
+      margin-top: 20px;
+      font-size: 20px;
+      padding: 10px 20px;
+      background-color: #00bfb2;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<!-- 🎵 背景音樂 -->
+<audio id="bgMusic" src="audio/walk3.mp3" loop></audio>
+
+<!-- 遊戲說明畫面（點擊即可開始遊戲） -->
+<div id="overlay" onclick="startGame()">
+  利用上下左右鍵讓螃蟹移動，避開垃圾即可成功，碰到垃圾須重新開始。<br><br>
+  👉 點一下畫面開始遊戲與播放音樂
+</div>
+
+<div id="failScreen">
+  <div>挑戰失敗，請重新開始</div>
+  <button onclick="restartGame()">重新挑戰</button>
+</div>
+
+<div id="winScreen">
+  <div>挑戰成功！2 秒後將進入下一關</div>
+  <button onclick="location.href='level4.html'">手動前往下一關</button>
+</div>
+
+<div id="goal"></div>
+<img id="crab" src="images/crab2.png">
+
+<script>
+  const crab = document.getElementById("crab");
+  const overlay = document.getElementById("overlay");
+  const failScreen = document.getElementById("failScreen");
+  const winScreen = document.getElementById("winScreen");
+  const goal = document.getElementById("goal");
+  const bgMusic = document.getElementById("bgMusic");
+
+  const trashTypes = ['images/apple.png', 'images/bottle2.png', 'images/bag.png', 'images/can.png'];
+  const trashes = [];
+  const trashCount = 30;
+  let gameOver = false;
+
+  let crabX = 50;
+  let crabY = window.innerHeight * 0.7;
+
+  // 🟡 點擊 overlay 開始遊戲並播放音樂
+  function startGame() {
+    overlay.style.display = 'none';
+    initTrashes();
+    document.addEventListener('keydown', moveCrab);
+
+    // 播放背景音樂（需用戶互動才能觸發）
+    bgMusic.play().catch(e => {
+      console.warn("音樂播放失敗，可能因為瀏覽器限制：", e);
+    });
+  }
+
+  function initTrashes() {
+    for (let i = 0; i < trashCount; i++) {
+      const img = document.createElement('img');
+      img.src = trashTypes[i % trashTypes.length];
+      img.className = 'trash';
+      const half = i < trashCount / 2 ? 0.0 : 0.5;
+      const top = Math.min(window.innerHeight - 60, (Math.random() * 0.5 + half) * window.innerHeight);
+      img.style.left = Math.random() * (window.innerWidth - 60) + 'px';
+      img.style.top = top + 'px';
+      document.body.appendChild(img);
+      trashes.push(img);
+    }
+  }
+
+  function moveCrab(e) {
+    if (gameOver) return;
+    const step = 20;
+    if (e.key === 'ArrowUp') crabY -= step;
+    if (e.key === 'ArrowDown') crabY += step;
+    if (e.key === 'ArrowLeft') crabX -= step;
+    if (e.key === 'ArrowRight') crabX += step;
+
+    crabX = Math.max(0, Math.min(window.innerWidth - 100, crabX));
+    crabY = Math.max(0, Math.min(window.innerHeight - 100, crabY));
+
+    crab.style.left = crabX + 'px';
+    crab.style.top = crabY + 'px';
+
+    checkCollision();
+    checkWin();
+  }
+
+  function checkCollision() {
+    const crabRect = crab.getBoundingClientRect();
+    for (let t of trashes) {
+      const rect = t.getBoundingClientRect();
+      if (crabRect.left < rect.right && crabRect.right > rect.left &&
+          crabRect.top < rect.bottom && crabRect.bottom > rect.top) {
+        failScreen.style.display = 'flex';
+        document.removeEventListener('keydown', moveCrab);
+        gameOver = true;
+        return;
+      }
+    }
+  }
+
+  function checkWin() {
+    const crabRect = crab.getBoundingClientRect();
+    const goalRect = goal.getBoundingClientRect();
+    if (crabRect.left < goalRect.right && crabRect.right > goalRect.left &&
+        crabRect.top < goalRect.bottom && crabRect.bottom > goalRect.top) {
+      winScreen.style.display = 'flex';
+      document.removeEventListener('keydown', moveCrab);
+      gameOver = true;
+      setTimeout(() => {
+        location.href = 'level4.html';
+      }, 2000);
+    }
+  }
+
+  function restartGame() {
+    window.location.reload();
+  }
+</script>
+
+</body>
+</html>
